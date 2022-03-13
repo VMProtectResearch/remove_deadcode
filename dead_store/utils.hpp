@@ -5,6 +5,14 @@
 #include<Zydis/Utils.h>
 #include<Zydis/Zydis.h>
 
+//static const std::vector<ZydisMnemonic> blacklist = {
+    //ZYDIS_MNEMONIC_CLC, ZYDIS_MNEMONIC_BT,  ZYDIS_MNEMONIC_TEST,
+    //ZYDIS_MNEMONIC_CMP, ZYDIS_MNEMONIC_CMC, ZYDIS_MNEMONIC_STC };
+
+//static const std::vector<ZydisMnemonic> whitelist = {
+    //ZYDIS_MNEMONIC_PUSH, ZYDIS_MNEMONIC_POP, ZYDIS_MNEMONIC_CALL,
+    //ZYDIS_MNEMONIC_DIV };
+
 struct ZYDIS_INSN_INFO {
     ZydisDecodedInstruction instr;
     ZydisDecodedOperand operands[ZYDIS_MAX_OPERAND_COUNT_VISIBLE];
@@ -13,12 +21,8 @@ struct ZYDIS_INSN_INFO {
     {
         this->instr = instr;
         this->addr = addr;
-        memcpy(this->operands, operands, sizeof(ZydisDecodedOperand));
+        memcpy(this->operands, operands, sizeof(this->operands));
     }
-    //ZYDIS_INSN_INFO(const ZYDIS_INSN_INFO&)
-    //{
-        //memcpy(this->operands, operands, sizeof(operands));
-    //}
 };
 using ZYDIS_ROUTINUE = std::vector<ZYDIS_INSN_INFO>;
 
@@ -84,6 +88,39 @@ namespace utils {
         return instr.mnemonic == ZYDIS_MNEMONIC_JMP;
     }
 
+    /// <summary>
+    /// 判断第一次写的寄存器和第二次的是否冲突(覆盖)
+    /// </summary>
+    /// <param name="reg_write_first">第一次写的寄存器</param>
+    /// <param name="reg_write_second">第二次写的寄存器</param>
+    /// <returns></returns>
+    bool reg_written_compare(ZydisRegister reg_write_first, ZydisRegister reg_write_second)
+    {
+        return ((ZydisRegisterGetLargestEnclosing(ZYDIS_MACHINE_MODE_LONG_64, reg_write_first) == ZydisRegisterGetLargestEnclosing(ZYDIS_MACHINE_MODE_LONG_64, reg_write_second))&&
+            (ZydisRegisterGetWidth(ZYDIS_MACHINE_MODE_LONG_64,reg_write_first) <= ZydisRegisterGetWidth(ZYDIS_MACHINE_MODE_LONG_64, reg_write_second)) || ((ZydisRegisterGetWidth(ZYDIS_MACHINE_MODE_LONG_64, reg_write_first) == 64) && ZydisRegisterGetWidth(ZYDIS_MACHINE_MODE_LONG_64, reg_write_second) == 32));
+    }
 
+    namespace optimize {
+        
+        //https://docs.microsoft.com/zh-cn/windows-hardware/drivers/debugger/x64-architecture
+        /// <summary>
+        /// 基本思路是在两次写寄存器中间判断有没有读的操作
+        ///
+        /// <summary>
+        inline void remove_dead_store(ZYDIS_ROUTINUE block)
+        {
+
+
+
+
+
+
+
+
+
+
+
+        }
+    }
 
 }

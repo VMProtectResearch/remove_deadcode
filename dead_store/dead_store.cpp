@@ -45,9 +45,21 @@ int main(int argc,char* argv[])
        if (max_instrs > 500)
            break;
 
+       zydis_routinue.emplace_back( instr, operands,routine_addr ); //对routine_addr反汇编
 
-       zydis_routinue.emplace_back( instr, operands,routine_addr );
-       routine_addr += instr.length;
+       if (utils::is_jcc(instr)) 
+       {
+           if (utils::is_jmp(instr)) //如果是jmp的话,改变反汇编起始地址
+           {
+               ZyanU64 abs_addr;
+               ZydisCalcAbsoluteAddress(&instr, operands, routine_addr, &abs_addr);
+               routine_addr = abs_addr;
+           }
+           else //其他的条件jcc,dead store不负责这一块
+               break;
+       }else
+           routine_addr += instr.length; //移动到下一条指令
+
    }
 
    utils::print(zydis_routinue);
