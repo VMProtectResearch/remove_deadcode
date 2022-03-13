@@ -62,7 +62,10 @@ int main(int argc,char* argv[])
 
    }
 
-   utils::print(zydis_routinue);
+   //utils::print(zydis_routinue);
+
+   utils::optimize::remove_dead_store(zydis_routinue);
+
 
    return 0;
 }

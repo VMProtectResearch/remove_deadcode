@@ -1,6 +1,7 @@
 #pragma once
 #include<fstream>
 #include<vector>
+#include<unordered_map>
 
 #include<Zydis/Utils.h>
 #include<Zydis/Zydis.h>
@@ -109,6 +110,63 @@ namespace utils {
         /// <summary>
         inline void remove_dead_store(ZYDIS_ROUTINUE block)
         {
+            static std::unordered_map<ZydisRegister, uint64_t> _map;
+
+            for (std::vector<ZYDIS_INSN_INFO>::iterator iter = block.begin(); iter != block.end(); iter++)
+            {
+                //遍历operand,一般指令都只有一个operand,像xchg等有2个,并且都有写操作
+                for (int i = 0; i < iter->instr.operand_count_visible; i++)
+                {
+                    if (iter->operands[i].type == ZYDIS_OPERAND_TYPE_REGISTER && (iter->operands[i].actions & ZYDIS_OPERAND_ACTION_WRITE))
+                    {
+                        
+                        std::unordered_map<ZydisRegister, uint64_t>::iterator map_iter;
+
+                        //
+                        //之前记录了一次写操作
+                        //
+
+                        if ((map_iter = _map.find(ZydisRegisterGetLargestEnclosing(ZYDIS_MACHINE_MODE_LONG_64, iter->operands[i].reg.value))) != _map.end())
+                        {
+                            //std::cout << std::hex << map_iter->second << " " << iter->addr << std::endl;
+
+                            //迭代这两个地址中间的指令,判断是否有读的
+
+
+                            //获得第一次写的迭代器位置
+                            auto first_iter = std::find_if(block.begin(), block.end(), [&map_iter](ZYDIS_INSN_INFO i) {if (i.addr == map_iter->second) return true; else return false; });
+
+                            bool is_read = false;
+                            ZydisRegister largest_reg = ZydisRegisterGetLargestEnclosing(ZYDIS_MACHINE_MODE_LONG_64, iter->operands[i].reg.value);
+
+                                auto t = first_iter;
+                                while ((++t) != iter)
+                                {
+                                    for (int i = 0; i < t->instr.operand_count_visible; i++)
+                                    {
+                                        if (iter->operands[i].type == ZYDIS_OPERAND_TYPE_REGISTER && (iter->operands[i].actions & ZYDIS_OPERAND_ACTION_READ) && (ZydisRegisterGetLargestEnclosing(ZYDIS_MACHINE_MODE_LONG_64, iter->operands[i].reg.value) == largest_reg))
+                                        {
+                                            is_read = true;
+                                        }
+                                    }
+
+                                   
+                                }
+
+                                if (!is_read)
+                                {
+                                    std::cout << "nop addr " << std::hex << first_iter->addr << std::endl;
+                                }
+
+
+                        }
+                        else  
+                        {
+                            //之前没有记录,那就记录
+                            //先不管大小问题 (mov rax,0xffff mov ax,1 这种有效情况)
+
+                            _map[ZydisRegisterGetLargestEnclosing(ZYDIS_MACHINE_MODE_LONG_64,iter->operands[i].reg.value)] = iter->addr;
+                        }
 
 
 
@@ -116,8 +174,9 @@ namespace utils {
 
 
 
-
-
+                    }
+                }
+            }
 
 
         }
